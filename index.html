@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AssetTrack — ระบบยืม-คืนอุปกรณ์</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    body { background: #f0f2ff; }
+
+    /* Sidebar */
+    .sidebar { background: #fff; width: 240px; min-height: 100vh; border-right: 1px solid #e8eaf6; }
+    .sidebar-link { display: flex; align-items: center; gap: 12px; padding: 11px 20px; border-radius: 10px; color: #8a94a6; font-size: 14px; font-weight: 500; cursor: pointer; transition: all .18s; margin: 2px 10px; }
+    .sidebar-link:hover { background: #f0f2ff; color: #4c6ef5; }
+    .sidebar-link.active { background: linear-gradient(90deg,#4c6ef5,#7b5ea7); color: #fff; box-shadow: 0 4px 14px #4c6ef540; }
+    .sidebar-link.active i { color: #fff; }
+
+    /* Cards */
+    .stat-card { background:#fff; border-radius:16px; padding:20px 24px; box-shadow:0 2px 12px #4c6ef510; border:1px solid #eef0ff; transition: box-shadow .2s; }
+    .stat-card:hover { box-shadow:0 6px 24px #4c6ef520; }
+
+    /* Table */
+    .data-table th { font-size:11px; font-weight:600; color:#a0aec0; text-transform:uppercase; letter-spacing:.06em; padding:10px 16px; background:#f8f9ff; }
+    .data-table td { padding:13px 16px; font-size:13.5px; color:#2d3748; border-bottom:1px solid #f0f2ff; }
+    .data-table tr:last-child td { border-bottom:none; }
+    .data-table tr:hover td { background:#f8f9ff; }
+
+    /* Badge */
+    .badge { display:inline-flex; align-items:center; gap:5px; padding:3px 11px; border-radius:999px; font-size:12px; font-weight:600; }
+    .badge-green { background:#e6faf2; color:#22c55e; }
+    .badge-orange { background:#fff7ed; color:#f97316; }
+    .badge-red { background:#fff0f0; color:#ef4444; }
+    .badge-blue { background:#eff6ff; color:#3b82f6; }
+    .badge-gray { background:#f1f5f9; color:#64748b; }
+
+    /* Modal */
+    .modal-backdrop { position:fixed; inset:0; background:#00000055; backdrop-filter:blur(3px); z-index:50; display:flex; align-items:center; justify-content:center; }
+    .modal-box { background:#fff; border-radius:20px; width:100%; max-width:460px; box-shadow:0 24px 60px #0000002a; padding:32px; }
+
+    /* Buttons */
+    .btn-primary { background:linear-gradient(135deg,#4c6ef5,#7b5ea7); color:#fff; border:none; border-radius:10px; padding:9px 20px; font-size:13.5px; font-weight:600; cursor:pointer; transition:opacity .15s,box-shadow .15s; display:inline-flex; align-items:center; gap:7px; box-shadow:0 4px 14px #4c6ef530; }
+    .btn-primary:hover { opacity:.9; box-shadow:0 6px 20px #4c6ef540; }
+    .btn-success { background:linear-gradient(135deg,#22c55e,#16a34a); color:#fff; border:none; border-radius:8px; padding:6px 13px; font-size:12px; font-weight:600; cursor:pointer; transition:opacity .15s; display:inline-flex; align-items:center; gap:5px; }
+    .btn-success:hover { opacity:.88; }
+    .btn-warning { background:linear-gradient(135deg,#f97316,#ea580c); color:#fff; border:none; border-radius:8px; padding:6px 13px; font-size:12px; font-weight:600; cursor:pointer; transition:opacity .15s; display:inline-flex; align-items:center; gap:5px; }
+    .btn-warning:hover { opacity:.88; }
+    .btn-gray { background:#f1f5f9; color:#64748b; border:none; border-radius:8px; padding:9px 18px; font-size:13.5px; font-weight:600; cursor:pointer; transition:all .15s; }
+    .btn-gray:hover { background:#e2e8f0; }
+
+    /* Input */
+    .form-input { width:100%; border:1.5px solid #e2e8f0; border-radius:10px; padding:9px 14px; font-size:14px; color:#2d3748; background:#f8f9ff; transition:border .18s,box-shadow .18s; outline:none; }
+    .form-input:focus { border-color:#4c6ef5; box-shadow:0 0 0 3px #4c6ef515; background:#fff; }
+    .form-label { font-size:12.5px; font-weight:600; color:#64748b; margin-bottom:5px; display:block; }
+
+    /* Search */
+    .search-wrap { position:relative; }
+    .search-wrap input { padding-left:38px; }
+    .search-wrap i { position:absolute; left:13px; top:50%; transform:translateY(-50%); color:#a0aec0; font-size:14px; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width:5px; height:5px; }
+    ::-webkit-scrollbar-track { background:#f0f2ff; }
+    ::-webkit-scrollbar-thumb { background:#c7d2fe; border-radius:4px; }
+
+    /* Toast */
+    #toast { position:fixed; bottom:28px; right:28px; z-index:999; transform:translateY(80px); opacity:0; transition:all .3s cubic-bezier(.4,0,.2,1); }
+    #toast.show { transform:translateY(0); opacity:1; }
+    .toast-inner { display:flex; align-items:center; gap:11px; padding:13px 20px; border-radius:13px; font-size:14px; font-weight:500; box-shadow:0 8px 30px #00000022; }
+    .toast-success { background:#22c55e; color:#fff; }
+    .toast-error { background:#ef4444; color:#fff; }
+
+    /* Loader */
+    .spinner { width:20px; height:20px; border:2.5px solid #e2e8f0; border-top-color:#4c6ef5; border-radius:50%; animation:spin .7s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* Section header line */
+    .section-accent { width:4px; height:20px; background:linear-gradient(180deg,#4c6ef5,#7b5ea7); border-radius:99px; display:inline-block; margin-right:10px; vertical-align:middle; }
+
+    /* Overdue highlight */
+    .overdue-row td { background:#fff8f8 !important; }
+    .overdue-row:hover td { background:#fff0f0 !important; }
+  </style>
+</head>
+<body class="flex">
+
+  <!-- Sidebar -->
+  <aside class="sidebar flex flex-col py-6 flex-shrink-0">
+    <div class="px-6 mb-8">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:linear-gradient(135deg,#4c6ef5,#7b5ea7)">
+          <i class="fas fa-box-open text-white text-sm"></i>
+        </div>
+        <span class="font-bold text-gray-800 text-base tracking-tight">AssetTrack</span>
+      </div>
+    </div>
+
+    <nav class="flex-1 space-y-1">
+      <div class="sidebar-link active" onclick="showSection('dashboard')">
+        <i class="fas fa-th-large text-sm"></i> Dashboard
+      </div>
+      <div class="sidebar-link" onclick="showSection('equipment')">
+        <i class="fas fa-tools text-sm"></i> อุปกรณ์ทั้งหมด
+      </div>
+      <div class="sidebar-link" onclick="showSection('history')">
+        <i class="fas fa-history text-sm"></i> ประวัติการยืม-คืน
+      </div>
+    </nav>
+
+    <div class="px-4 mt-4">
+      <div class="bg-indigo-50 rounded-14 p-4 rounded-xl">
+        <p class="text-xs text-indigo-400 font-semibold mb-1">สถานะระบบ</p>
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 bg-green-400 rounded-full inline-block animate-pulse"></span>
+          <span class="text-xs text-gray-600 font-medium">เชื่อมต่อ Supabase แล้ว</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="flex-1 flex flex-col min-h-screen overflow-auto">
+
+    <!-- Topbar -->
+    <header class="bg-white border-b border-indigo-50 px-8 py-4 flex items-center justify-between sticky top-0 z-30">
+      <div>
+        <p class="text-xs text-gray-400 font-medium" id="breadcrumb">Pages / Dashboard</p>
+        <h1 class="text-xl font-bold text-gray-800" id="page-title">Main Dashboard</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="search-wrap">
+          <i class="fas fa-search"></i>
+          <input id="global-search" type="text" placeholder="ค้นหาอุปกรณ์..." class="form-input w-56 text-sm" oninput="handleSearch()" />
+        </div>
+        <button class="w-9 h-9 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-400 hover:bg-indigo-100 transition">
+          <i class="fas fa-bell text-sm"></i>
+        </button>
+        <div class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-white text-sm" style="background:linear-gradient(135deg,#4c6ef5,#7b5ea7)">A</div>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <div class="p-8 flex-1">
+
+      <!-- ===== DASHBOARD SECTION ===== -->
+      <section id="section-dashboard">
+
+        <!-- Stat Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-5 mb-8">
+          <div class="stat-card">
+            <p class="text-xs text-gray-400 font-semibold mb-1">อุปกรณ์ทั้งหมด</p>
+            <p class="text-2xl font-bold text-gray-800" id="stat-total">—</p>
+            <p class="text-xs text-indigo-400 mt-1 font-medium">รายการในระบบ</p>
+          </div>
+          <div class="stat-card">
+            <p class="text-xs text-gray-400 font-semibold mb-1">พร้อมให้ยืม</p>
+            <p class="text-2xl font-bold text-green-500" id="stat-available">—</p>
+            <p class="text-xs text-green-400 mt-1 font-medium">Available</p>
+          </div>
+          <div class="stat-card">
+            <p class="text-xs text-gray-400 font-semibold mb-1">ถูกยืมอยู่</p>
+            <p class="text-2xl font-bold text-orange-500" id="stat-borrowed">—</p>
+            <p class="text-xs text-orange-400 mt-1 font-medium">Borrowed</p>
+          </div>
+          <div class="stat-card">
+            <p class="text-xs text-gray-400 font-semibold mb-1">ส่งซ่อม</p>
+            <p class="text-2xl font-bold text-red-500" id="stat-maintenance">—</p>
+            <p class="text-xs text-red-400 mt-1 font-medium">Maintenance</p>
+          </div>
+        </div>
+
+        <!-- Equipment Table -->
+        <div class="bg-white rounded-2xl shadow-sm border border-indigo-50 mb-8">
+          <div class="flex items-center justify-between px-6 py-5 border-b border-indigo-50">
+            <div class="flex items-center">
+              <span class="section-accent"></span>
+              <h2 class="font-bold text-gray-800 text-base">รายการอุปกรณ์</h2>
+            </div>
+            <div class="flex items-center gap-3">
+              <select id="filter-category" class="form-input text-sm py-2 w-44" onchange="applyFilters()">
+                <option value="">— หมวดหมู่ทั้งหมด —</option>
+              </select>
+              <select id="filter-status" class="form-input text-sm py-2 w-40" onchange="applyFilters()">
+                <option value="">— สถานะทั้งหมด —</option>
+                <option value="Available">Available</option>
+                <option value="Borrowed">Borrowed</option>
+                <option value="Maintenance">Maintenance</option>
+              </select>
+              <button class="btn-primary" onclick="openModal('modal-add-equipment')">
+                <i class="fas fa-plus text-xs"></i> บันทึกอุปกรณ์ใหม่
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full data-table">
+              <thead>
+                <tr>
+                  <th class="text-left">รหัสอุปกรณ์</th>
+                  <th class="text-left">ชื่ออุปกรณ์</th>
+                  <th class="text-left">หมวดหมู่</th>
+                  <th class="text-left">สถานะ</th>
+                  <th class="text-center">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="equipment-tbody">
+                <tr><td colspan="5" class="text-center py-10 text-gray-400">
+                  <div class="flex flex-col items-center gap-3">
+                    <div class="spinner"></div>
+                    <span class="text-sm">กำลังโหลดข้อมูล...</span>
+                  </div>
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Recent Borrow Logs -->
+        <div class="bg-white rounded-2xl shadow-sm border border-indigo-50">
+          <div class="flex items-center justify-between px-6 py-5 border-b border-indigo-50">
+            <div class="flex items-center">
+              <span class="section-accent"></span>
+              <h2 class="font-bold text-gray-800 text-base">ประวัติการยืม-คืนล่าสุด</h2>
+            </div>
+            <span class="text-xs text-gray-400 font-medium">10 รายการล่าสุด</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full data-table">
+              <thead>
+                <tr>
+                  <th class="text-left">อุปกรณ์</th>
+                  <th class="text-left">ผู้ยืม</th>
+                  <th class="text-left">วันที่ยืม</th>
+                  <th class="text-left">กำหนดคืน</th>
+                  <th class="text-left">วันคืนจริง</th>
+                  <th class="text-left">สถานะ</th>
+                </tr>
+              </thead>
+              <tbody id="logs-tbody">
+                <tr><td colspan="6" class="text-center py-10 text-gray-400">
+                  <div class="flex flex-col items-center gap-3">
+                    <div class="spinner"></div>
+                    <span class="text-sm">กำลังโหลดข้อมูล...</span>
+                  </div>
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== EQUIPMENT SECTION ===== -->
+      <section id="section-equipment" class="hidden">
+        <div class="bg-white rounded-2xl shadow-sm border border-indigo-50">
+          <div class="flex items-center justify-between px-6 py-5 border-b border-indigo-50">
+            <div class="flex items-center">
+              <span class="section-accent"></span>
+              <h2 class="font-bold text-gray-800 text-base">อุปกรณ์ทั้งหมด</h2>
+            </div>
+            <button class="btn-primary" onclick="openModal('modal-add-equipment')">
+              <i class="fas fa-plus text-xs"></i> บันทึกอุปกรณ์ใหม่
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full data-table">
+              <thead>
+                <tr>
+                  <th class="text-left">รหัสอุปกรณ์</th>
+                  <th class="text-left">ชื่ออุปกรณ์</th>
+                  <th class="text-left">หมวดหมู่</th>
+                  <th class="text-left">สถานะ</th>
+                  <th class="text-center">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="equipment-tbody-2">
+                <tr><td colspan="5" class="text-center py-10 text-gray-400">
+                  <div class="spinner mx-auto"></div>
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== HISTORY SECTION ===== -->
+      <section id="section-history" class="hidden">
+        <div class="bg-white rounded-2xl shadow-sm border border-indigo-50">
+          <div class="flex items-center justify-between px-6 py-5 border-b border-indigo-50">
+            <div class="flex items-center">
+              <span class="section-accent"></span>
+              <h2 class="font-bold text-gray-800 text-base">ประวัติการยืม-คืนทั้งหมด</h2>
+            </div>
+            <span class="text-xs text-gray-400 font-medium" id="log-count-label">—</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full data-table">
+              <thead>
+                <tr>
+                  <th class="text-left">อุปกรณ์</th>
+                  <th class="text-left">ผู้ยืม</th>
+                  <th class="text-left">วันที่ยืม</th>
+                  <th class="text-left">กำหนดคืน</th>
+                  <th class="text-left">วันคืนจริง</th>
+                  <th class="text-left">สถานะ</th>
+                </tr>
+              </thead>
+              <tbody id="logs-tbody-full">
+                <tr><td colspan="6" class="text-center py-10 text-gray-400">
+                  <div class="spinner mx-auto"></div>
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ===== MODAL: Add Equipment ===== -->
+  <div id="modal-add-equipment" class="modal-backdrop hidden" onclick="closeModalOutside(event,'modal-add-equipment')">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h3 class="text-lg font-bold text-gray-800">บันทึกอุปกรณ์ใหม่</h3>
+          <p class="text-xs text-gray-400 mt-0.5">กรอกข้อมูลอุปกรณ์ที่ต้องการเพิ่มเข้าระบบ</p>
+        </div>
+        <button onclick="closeModal('modal-add-equipment')" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-200 transition">
+          <i class="fas fa-times text-sm"></i>
+        </button>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="form-label">รหัสอุปกรณ์ <span class="text-red-400">*</span></label>
+          <input id="eq-asset-code" type="text" placeholder="เช่น EQ-001" class="form-input" />
+        </div>
+        <div>
+          <label class="form-label">ชื่ออุปกรณ์ <span class="text-red-400">*</span></label>
+          <input id="eq-name" type="text" placeholder="เช่น กล้อง Sony A7III" class="form-input" />
+        </div>
+        <div>
+          <label class="form-label">หมวดหมู่ <span class="text-red-400">*</span></label>
+          <input id="eq-category" type="text" placeholder="เช่น กล้องและอุปกรณ์ถ่ายภาพ" class="form-input" />
+        </div>
+        <div>
+          <label class="form-label">สถานะเริ่มต้น</label>
+          <select id="eq-status" class="form-input">
+            <option value="Available">Available — พร้อมให้ยืม</option>
+            <option value="Maintenance">Maintenance — ส่งซ่อม</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button class="btn-gray flex-1" onclick="closeModal('modal-add-equipment')">ยกเลิก</button>
+        <button class="btn-primary flex-1 justify-center" id="btn-save-equipment" onclick="saveEquipment()">
+          <i class="fas fa-save text-xs"></i> บันทึกอุปกรณ์
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL: Borrow ===== -->
+  <div id="modal-borrow" class="modal-backdrop hidden" onclick="closeModalOutside(event,'modal-borrow')">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h3 class="text-lg font-bold text-gray-800">ทำเรื่องยืมอุปกรณ์</h3>
+          <p class="text-xs text-indigo-500 font-semibold mt-0.5" id="borrow-eq-name">—</p>
+        </div>
+        <button onclick="closeModal('modal-borrow')" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-200 transition">
+          <i class="fas fa-times text-sm"></i>
+        </button>
+      </div>
+      <input type="hidden" id="borrow-eq-id" />
+      <div class="space-y-4">
+        <div>
+          <label class="form-label">ชื่อผู้ยืม <span class="text-red-400">*</span></label>
+          <input id="borrow-name" type="text" placeholder="ชื่อ-นามสกุล" class="form-input" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="form-label">วันที่ยืม <span class="text-red-400">*</span></label>
+            <input id="borrow-date" type="date" class="form-input" />
+          </div>
+          <div>
+            <label class="form-label">กำหนดคืน <span class="text-red-400">*</span></label>
+            <input id="return-date" type="date" class="form-input" />
+          </div>
+        </div>
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button class="btn-gray flex-1" onclick="closeModal('modal-borrow')">ยกเลิก</button>
+        <button class="btn-primary flex-1 justify-center" id="btn-confirm-borrow" onclick="confirmBorrow()">
+          <i class="fas fa-hand-holding text-xs"></i> ยืนยันการยืม
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODAL: Return ===== -->
+  <div id="modal-return" class="modal-backdrop hidden" onclick="closeModalOutside(event,'modal-return')">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h3 class="text-lg font-bold text-gray-800">คืนอุปกรณ์</h3>
+          <p class="text-xs text-orange-500 font-semibold mt-0.5" id="return-eq-name">—</p>
+        </div>
+        <button onclick="closeModal('modal-return')" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-200 transition">
+          <i class="fas fa-times text-sm"></i>
+        </button>
+      </div>
+      <input type="hidden" id="return-eq-id" />
+      <input type="hidden" id="return-log-id" />
+      <div class="bg-orange-50 border border-orange-100 rounded-xl p-4 mb-5">
+        <div class="grid grid-cols-2 gap-2 text-sm">
+          <div>
+            <p class="text-xs text-gray-400 font-semibold">ผู้ยืม</p>
+            <p class="font-semibold text-gray-700" id="return-borrower-name">—</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400 font-semibold">วันที่ยืม</p>
+            <p class="font-semibold text-gray-700" id="return-borrow-date-display">—</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400 font-semibold">กำหนดคืน</p>
+            <p class="font-semibold text-gray-700" id="return-due-date-display">—</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <label class="form-label">วันที่คืนจริง <span class="text-red-400">*</span></label>
+        <input id="actual-return-date" type="date" class="form-input" />
+      </div>
+      <div class="flex gap-3 mt-6">
+        <button class="btn-gray flex-1" onclick="closeModal('modal-return')">ยกเลิก</button>
+        <button style="background:linear-gradient(135deg,#22c55e,#16a34a)" class="btn-primary flex-1 justify-center" id="btn-confirm-return" onclick="confirmReturn()">
+          <i class="fas fa-check text-xs"></i> ยืนยันการคืน
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast">
+    <div id="toast-inner" class="toast-inner toast-success">
+      <i id="toast-icon" class="fas fa-check-circle"></i>
+      <span id="toast-msg">สำเร็จ</span>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
